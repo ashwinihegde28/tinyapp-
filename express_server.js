@@ -50,13 +50,19 @@ app.get("/urls/:id", (req, res) => {
   };
   res.render("urls_show", templateVars);
 });
-///u/
 
+///u/
 app.get("/u/:id", (req, res) => {
   //We redirected to long url
   console.log(req.params.id);
   console.log("urlDatabase =>", urlDatabase);
-  res.status(200).redirect("https://" + urlDatabase[req.params.id]);
+  res.status(200).redirect(urlDatabase[req.params.id]);
+});
+
+app.post("/urls/:shortURL/delete", (req, res) => {
+  const shortURL = req.params.shortURL;
+  delete urlDatabase[shortURL];
+  res.redirect(`/urls`);
 });
 
 app.listen(PORT, () => {
