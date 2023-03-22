@@ -31,15 +31,15 @@ app.get("/urls/new", (req, res) => {
 
 //when the form is submitted, it will make a request to POST /urls, and the body will contain one URL-encoded name-value pair with the name longURL
 app.post("/urls", (req, res) => {
-  console.log(req.body); // Log the POST request body to the console
+  // console.log(req.body); // Log the POST request body to the console
   // Respond with "OK" by setting the status code to 200.
   const shortURL = generateRandomString();
-  console.log("shortURL => " + shortURL);
+  // console.log("shortURL => " + shortURL);
   const longURL = req.body["longURL"];
-  console.log("longURL => " + longURL);
+  //console.log("longURL => " + longURL);
   // add this newly added url into the urlDatabase.
   urlDatabase[shortURL] = longURL;
-  console.log("urlDatabase =>" + urlDatabase);
+  //console.log("urlDatabase =>" + urlDatabase);
   res.status(200).redirect(`/urls/${shortURL}`);
 });
 
@@ -57,6 +57,15 @@ app.get("/u/:id", (req, res) => {
   console.log(req.params.id);
   console.log("urlDatabase =>", urlDatabase);
   res.status(200).redirect(urlDatabase[req.params.id]);
+});
+
+//For editing existing url
+app.post("/urls/:shortURL", (req, res) => {
+  const shortURL = req.params.shortURL;
+  const longURL = req.body.longURL;
+  console.log(longURL);
+  urlDatabase[shortURL] = longURL;
+  res.redirect(`/urls`);
 });
 
 app.post("/urls/:shortURL/delete", (req, res) => {
