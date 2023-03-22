@@ -1,9 +1,10 @@
 const express = require("express");
 const app = express();
 const PORT = 8080; // default port 8080
+var cookieParser = require("cookie-parser");
 
 app.set("view engine", "ejs");
-
+app.use(cookieParser());
 //middleware which will translate, or parse the body
 app.use(express.urlencoded({ extended: true }));
 
@@ -18,7 +19,8 @@ app.get("/", (req, res) => {
 });
 
 app.get("/urls", (req, res) => {
-  const templateVars = { urls: urlDatabase };
+  const templateVars = { username: req.cookies["username"], urls: urlDatabase };
+
   res.render("urls_index", templateVars);
 });
 
@@ -26,25 +28,25 @@ app.get("/urls", (req, res) => {
 //to present the form to the user; and a POST route to handle the form submission.
 
 app.get("/urls/new", (req, res) => {
+  const templateVars = {
+    username: req.cookies["username"],
+  };
   res.render("urls_new");
 });
 
 //when the form is submitted, it will make a request to POST /urls, and the body will contain one URL-encoded name-value pair with the name longURL
 app.post("/urls", (req, res) => {
-  // console.log(req.body); // Log the POST request body to the console
   // Respond with "OK" by setting the status code to 200.
   const shortURL = generateRandomString();
-  // console.log("shortURL => " + shortURL);
   const longURL = req.body["longURL"];
-  //console.log("longURL => " + longURL);
   // add this newly added url into the urlDatabase.
   urlDatabase[shortURL] = longURL;
-  //console.log("urlDatabase =>" + urlDatabase);
   res.status(200).redirect(`/urls/${shortURL}`);
 });
 
 app.get("/urls/:id", (req, res) => {
   const templateVars = {
+    username: req.cookies["username"],
     id: req.params.id,
     longURL: urlDatabase[req.params.id],
   };
@@ -68,9 +70,17 @@ app.post("/urls/:shortURL", (req, res) => {
   res.redirect(`/urls`);
 });
 
+//For deleting the url
 app.post("/urls/:shortURL/delete", (req, res) => {
   const shortURL = req.params.shortURL;
   delete urlDatabase[shortURL];
+  res.redirect(`/urls`);
+});
+
+//Login Page functionality
+app.post("/login", (req, res) => {
+  console.log("req.body.username # ", req.body.username);
+  res.cookie(`username`, req.body.username);
   res.redirect(`/urls`);
 });
 
