@@ -90,6 +90,12 @@ app.post("/logout", (req, res) => {
   res.redirect("/urls");
 });
 
+// Display the register form
+app.get("/register", (req, res) => {
+  const templateVars = { user: null };
+  res.render("register", templateVars);
+});
+
 app.listen(PORT, () => {
   console.log(`Example app listening on port ${PORT}!`);
 });
