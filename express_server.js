@@ -37,11 +37,11 @@ function generateRandomString() {
   return res;
 }
 
-//create a function to look up if email already exist
+//checks if email already exist and if not returns email elsenull
 const getUserByEmail = (email) => {
-  for (const user in users) {
-    if (email === users[user].email) {
-      return user;
+  for (const userId in users) {
+    if (email === users[userId].email) {
+      return users[userId];
     }
   }
   return null;
@@ -114,16 +114,28 @@ app.get("/login", (req, res) => {
   res.render("login", templateVars);
 });
 
+//////////////////// -- error here-----///////////////////////////
 //login existing user
 app.post("/login", (req, res) => {
-  res.cookie("user_id", req.body.username);
-  res.redirect("/urls");
+  const { email, password } = req.body;
+  const user = getUserByEmail(email);
+  if (user === null) {
+    res.status(403).send("User with this e-mail cannot be found");
+    return;
+  }
+  // Password check
+  if (user.password !== password) {
+    console.log("Password Incorrect");
+    return res.status(403).send("Password Incorrect");
+  }
+  res.cookie("user_id", user.id);
+  res.redirect(`/urls`);
 });
 
 //Logout
 app.post("/logout", (req, res) => {
   res.clearCookie("user_id");
-  res.redirect("/urls");
+  res.redirect("/login");
 });
 
 //render register form
@@ -147,7 +159,7 @@ app.post("/register", (req, res) => {
     res
       .status(404)
       .send("Either email or password is empty, enter a valid one.");
-  } else if (getUserByEmail(email) != "null") {
+  } else if (getUserByEmail(email) !== null) {
     console.log("already exists!");
     res.status(404).send("User Alredy Exisits");
   }
