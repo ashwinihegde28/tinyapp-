@@ -2,12 +2,16 @@ const express = require("express");
 const app = express();
 const PORT = 8080; // default port 8080
 var cookieParser = require("cookie-parser");
+const bcrypt = require("bcryptjs");
+const salt = 10;
 
 app.set("view engine", "ejs");
 app.use(cookieParser());
 //middleware which will translate, or parse the body
 app.use(express.urlencoded({ extended: true }));
 
+const hashedPassword1 = bcrypt.hashSync("purple-monkey-dinosaur", salt);
+const hashedPassword2 = bcrypt.hashSync("dishwasher-funk", salt);
 const urlDatabase = {
   b6UTxQ: {
     longURL: "https://www.tsn.ca",
@@ -24,12 +28,12 @@ const users = {
   userRandomID: {
     id: "userRandomID",
     email: "user@example.com",
-    password: "purple-monkey-dinosaur",
+    password: hashedPassword1,
   },
   user2RandomID: {
     id: "user2RandomID",
     email: "user2@example.com",
-    password: "dishwasher-funk",
+    password: hashedPassword2,
   },
 };
 
@@ -197,8 +201,8 @@ app.post("/login", (req, res) => {
     return;
   }
   // Password check
-  if (user.password !== password) {
-    console.log("Password Incorrect");
+
+  if (!bcrypt.compareSync(password, user.password)) {
     return res.status(400).send("Password Incorrect");
   }
   res.cookie("user_id", user.id);
@@ -228,18 +232,17 @@ app.post("/register", (req, res) => {
   const { email, password } = req.body;
   //if empty strings --> response = 404 statuscode
   if (email === "" || password === "") {
-    console.log("404 Empty email");
     res
       .status(404)
       .send("Either email or password is empty, enter a valid one.");
   } else if (getUserByEmail(email) !== null) {
-    console.log("already exists!");
     res.status(404).send("User Alredy Exisits");
   }
+  const hashedPassword = bcrypt.hashSync(password, salt);
   users[randomUserId] = {
     id: randomUserId,
     email: email,
-    password: password,
+    password: hashedPassword,
   };
 
   res.cookie("user_id", randomUserId);
@@ -249,3 +252,6 @@ app.post("/register", (req, res) => {
 app.listen(PORT, () => {
   console.log(`Example app listening on port ${PORT}!`);
 });
+
+// more readable
+//remove consol logs
