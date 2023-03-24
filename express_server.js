@@ -57,13 +57,15 @@ app.get("/", (req, res) => {
 // -- Display the url or view page functionality
 app.get("/urls", (req, res) => {
   const { user_id } = req.session;
-  //If the user has notuser_id logged in they cannot create new url and must be directed to login page.
+
+  //If the user has not logged in they cannot create new url and must be directed to login page.
   if (!user_id) {
-    return res.redirect("/login");
+    //return res.redirect("/login");
+    return res.send("Login required. Please <a href='/login'>login</a> here");
   }
 
+  // get all the created urls by the user.
   const userUrls = urlsForUser(user_id, urlDatabase);
-  console.log('userUrls', userUrls)
 
   const templateVars = { urls: userUrls, user: users[user_id] };
 
@@ -73,8 +75,11 @@ app.get("/urls", (req, res) => {
 // render create new url form
 app.get("/urls/new", (req, res) => {
   const { user_id } = req.session;
+
   //If the user has not logged in they cannot create new url and must be directed to login page.
-  if (!user_id) return res.redirect("/login");
+  if (!user_id) {
+    return res.redirect("/login");
+  }
   const templateVars = {
     user: users[user_id],
   };
@@ -87,10 +92,18 @@ app.get("/urls/:id", (req, res) => {
   const { user_id } = req.session;
 
   //If the user has not logged in they cannot see the specific url.
-  if (!user_id) return res.redirect("/login");
+  if (!user_id) {
+    return res.send("Login required. Please <a href='/login'>login</a> here");
+  }
 
   if (!urlDatabase[req.params.id]) {
     return res.send("URL doses not exists");
+  }
+
+  // only creator of the url can access
+  const url = urlDatabase[req.params.id];
+  if (url.userID !== user_id) {
+    return res.send("This action is only permitted to the owner of the URL");
   }
 
   const templateVars = {
@@ -133,11 +146,18 @@ app.post("/urls", (req, res) => {
 //editing existing url
 app.post("/urls/:id", (req, res) => {
   const { user_id } = req.session;
+
   //If the user has not logged in they cannot create new url and must be directed to login page.
-  if (!user_id) return res.send("Login to Edit");
+  if (!user_id) {
+    return res.send("Login required. Please <a href='/login'>login</a> here");
+  }
+
+  //If url entered mismatch with the existing url
   if (!urlDatabase[req.params.id]) {
     return res.send("URL doses not exists");
   }
+
+  // only creator of the url can edit
   const url = urlDatabase[req.params.id];
   if (url.userID !== user_id) {
     return res.send("This action is only permitted to the owner of the URL");
@@ -146,19 +166,24 @@ app.post("/urls/:id", (req, res) => {
   const shortURL = req.params.id;
   const longURL = req.body.longURL;
   urlDatabase[shortURL].longURL = longURL;
+
   res.redirect("/urls");
 });
 
-//deleting the url
+//Deleting the url
 app.post("/urls/:id/delete", (req, res) => {
   const { user_id } = req.session;
+
   //If the user has not logged in they cannot create new url and must be directed to login page.
   if (!user_id) {
-    return res.send("Login required");
+    return res.send("Login required. Please <a href='/login'>login</a> here");
   }
+
   if (!urlDatabase[req.params.id]) {
     return res.send("URL doses not exists");
   }
+
+  // only creator of the url can delete
   const url = urlDatabase[req.params.id]; // the url of the user
   if (url.userID !== user_id) {
     return res.send("This action is only permitted to the owner of the URL");
@@ -166,12 +191,14 @@ app.post("/urls/:id/delete", (req, res) => {
 
   const shortURL = req.params.id;
   delete urlDatabase[shortURL];
+
   res.redirect(`/urls`);
 });
 
 //render login form
 app.get("/login", (req, res) => {
   const templateVars = { user: null };
+
   res.render("login", templateVars);
 });
 
@@ -180,6 +207,7 @@ app.post("/login", (req, res) => {
   const { email, password } = req.body;
   const user = getUserByEmail(email, users);
 
+  //check if the email exists in the database
   if (!user) {
     return res.status(404).send("User with this e-mail cannot be found");
   }
@@ -209,7 +237,6 @@ app.get("/register", (req, res) => {
 app.post("/register", (req, res) => {
   //Extract the email and password from the form
   // req.body (body-parser) will get the info from our form
-  //generate the random user id
 
   // es6 syntax
   const { email, password } = req.body;
@@ -225,7 +252,10 @@ app.post("/register", (req, res) => {
     return res.status(404).send("User Alredy Exisits");
   }
 
+  //generate the random user id
   const randomUserId = generateRandomString();
+
+  //Password encrytption
   const hashedPassword = bcrypt.hashSync(password, salt);
   users[randomUserId] = {
     id: randomUserId,
@@ -234,13 +264,10 @@ app.post("/register", (req, res) => {
   };
 
   req.session.user_id = randomUserId;
+
   res.redirect("/urls");
 });
 
 app.listen(PORT, () => {
   console.log(`Example app listening on port ${PORT}!`);
 });
-
-//To Do:
-// more readable
-//remove consol logs
