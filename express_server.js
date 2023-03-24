@@ -9,8 +9,14 @@ app.use(cookieParser());
 app.use(express.urlencoded({ extended: true }));
 
 const urlDatabase = {
-  b2xVn2: "http://www.lighthouselabs.ca",
-  "9sm5xK": "http://www.google.com",
+  b6UTxQ: {
+    longURL: "https://www.tsn.ca",
+    userID: "aJ48lW",
+  },
+  i3BoGr: {
+    longURL: "https://www.google.ca",
+    userID: "aJ48lW",
+  },
 };
 
 //Users to store and access the users in the app
@@ -37,7 +43,7 @@ function generateRandomString() {
   return res;
 }
 
-//checks if email already exist and if not returns email elsenull
+//checks if email already exist and if not returns email else null
 const getUserByEmail = (email) => {
   for (const userId in users) {
     if (email === users[userId].email) {
@@ -47,62 +53,130 @@ const getUserByEmail = (email) => {
   return null;
 };
 
+// returns the URLs where the userID is equal to the id of the currently logged-in user.
+const urlsForUser = (id) => {
+  let userUrls = {};
+
+  for (const key in urlDatabase) {
+    if (urlDatabase[key].userID === id) {
+      userUrls[key] = urlDatabase[key];
+    }
+  }
+  return userUrls;
+};
+
 app.get("/", (req, res) => {
   res.send("Hello!"); //this will eventually change
 });
 
 app.get("/urls", (req, res) => {
-  const templateVars = {
-    user: users[req.cookies["user_id"]],
-    urls: urlDatabase,
-  };
+  const { user_id } = req.cookies;
+  //If the user has notuser_id logged in they cannot create new url and must be directed to login page.
+  if (!user_id) {
+    return res.redirect("/login");
+  }
+
+  const userUrls = urlsForUser(user_id);
+  let templateVars = { urls: userUrls, user: users[user_id] };
 
   res.render("urls_index", templateVars);
 });
 
 // render create new url form
 app.get("/urls/new", (req, res) => {
+  const { user_id } = req.cookies;
+
+  //If the user has not logged in they cannot create new url and must be directed to login page.
+  if (!user_id) return res.redirect("/login");
   const templateVars = {
     user: users[req.cookies["user_id"]],
   };
+
   res.render("urls_new", templateVars);
 });
 
 // render show page
 app.get("/urls/:id", (req, res) => {
+  const { user_id } = req.cookies;
+
+  //If the user has not logged in they cannot see the specific url.
+  if (!user_id) return res.redirect("/login");
+
+  if (!urlDatabase[req.params.id]) {
+    return res.send("URL doses not exists");
+  }
   const templateVars = {
     user: users[req.cookies["user_id"]],
     id: req.params.id,
-    longURL: urlDatabase[req.params.id],
+    longURL: urlDatabase[req.params.id].longURL,
   };
+
   res.render("urls_show", templateVars);
 });
 
 // redirect to corresponding longurl
 app.get("/u/:id", (req, res) => {
-  res.status(200).redirect(urlDatabase[req.params.id]);
+  if (!urlDatabase[req.params.id]) {
+    return res.send("URL doses not exists");
+  }
+  res.status(200).redirect(urlDatabase[req.params.id].longURL);
 });
 
 //adding brand new url to DB
 app.post("/urls", (req, res) => {
   // Respond with "OK" by setting the status code to 200.
+  const { user_id } = req.cookies;
+  //Only Registered Users Can Shorten URLs
+  if (!user_id)
+    return res
+      .status(403)
+      .send("403: Unauthorized\n Only Registered Users Can Shorten URLs");
+
   const shortURL = generateRandomString();
   const longURL = req.body["longURL"];
+
   // add this newly added url into the urlDatabase.
-  urlDatabase[shortURL] = longURL;
+  urlDatabase[shortURL] = { longURL: longURL, userID: user_id };
+
   res.status(200).redirect(`/urls/${shortURL}`);
 });
 
 //editing existing url
 app.post("/urls/:id", (req, res) => {
+  const { user_id } = req.cookies;
+  //If the user has not logged in they cannot create new url and must be directed to login page.
+  if (!user_id) return res.send("Login to Edit");
+  if (!urlDatabase[req.params.id]) {
+    return res.send("URL doses not exists");
+  }
+  const userUrl = urlsForUser(id); // the url of the user
+  for (id in userUrl) {
+    if (req.params.id !== userUrl[id]) {
+      return res.send("This action is only permitted to the owner of the URL");
+    }
+  }
+
   const shortURL = req.params.id;
   const longURL = req.body.longURL;
-  urlDatabase[shortURL] = longURL;
+  urlDatabase[shortURL].longURL = longURL;
   res.redirect("/urls");
 });
 
 //deleting the url
 app.post("/urls/:id/delete", (req, res) => {
+  const { user_id } = req.cookies;
+  //If the user has not logged in they cannot create new url and must be directed to login page.
+  if (!user_id) return res.send("Login required");
+  if (!urlDatabase[req.params.id]) {
+    return res.send("URL doses not exists");
+  }
+  const userUrl = urlsForUser(id); // the url of the user
+  for (id in userUrl) {
+    if (req.params.id !== userUrl[id]) {
+      return res.send("This action is only permitted to the owner of the URL");
+    }
+  }
+
   const shortURL = req.params.id;
   delete urlDatabase[shortURL];
   res.redirect(`/urls`);
@@ -114,19 +188,18 @@ app.get("/login", (req, res) => {
   res.render("login", templateVars);
 });
 
-//////////////////// -- error here-----///////////////////////////
 //login existing user
 app.post("/login", (req, res) => {
   const { email, password } = req.body;
   const user = getUserByEmail(email);
   if (user === null) {
-    res.status(403).send("User with this e-mail cannot be found");
+    res.status(404).send("User with this e-mail cannot be found");
     return;
   }
   // Password check
   if (user.password !== password) {
     console.log("Password Incorrect");
-    return res.status(403).send("Password Incorrect");
+    return res.status(400).send("Password Incorrect");
   }
   res.cookie("user_id", user.id);
   res.redirect(`/urls`);
