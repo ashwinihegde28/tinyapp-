@@ -22,25 +22,29 @@
       <h1>Login</h1>
 
       <form method="POST" action="/login">
-        <label for="email">Email:</label>
-        <input
-          style="width: 100%"
-          type="email"
-          name="email"
-          id="email"
-          placeholder="Please enter your email"
-        />
+        <div class="form-group mb-2">
+          <label for="email">Email:</label>
+          <input
+            class="form-control mb-3"
+            style="width: 100%"
+            type="email"
+            name="email"
+            id="email"
+            placeholder="Please enter your email"
+          />
 
-        <label for="password">Password:</label>
-        <input
-          style="width: 100%"
-          type="password"
-          name="password"
-          id="password"
-          placeholder="Please enter your password"
-        />
+          <label for="password">Password:</label>
+          <input
+            class="form-control mb-3"
+            style="width: 100%"
+            type="password"
+            name="password"
+            id="password"
+            placeholder="Please enter your password"
+          />
 
-        <button type="submit" class="btn btn-primary">Login</button>
+          <button type="submit" class="btn btn-primary">Login</button>
+        </div>
       </form>
     </main>
     <!-- Bootstrap JS -->
