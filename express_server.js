@@ -50,8 +50,9 @@ const users = {
   },
 };
 
-app.get("/", (req, res) => {
-  res.send("Hello!"); //this will eventually change
+app.get("/hello", (req, res) => {
+  const templateVars = { greeting: "Hello Welcome to Tiny App World!" };
+  res.render("hello_world", templateVars);
 });
 
 // -- Display the url or view page functionality
